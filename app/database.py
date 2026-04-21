@@ -22,7 +22,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.config import config
 
-log = logging.getLogger(__name__)
+log = logging.getLogger(__name__) # __name__ here is main but in other file it is app.database it is for debugging
 
 # ── SQL file path ─────────────────────────────────────────────────────────────
 # Resolved relative to this file so it works from any working directory.

@@ -217,14 +217,16 @@ def _order_status_breakdown(pdf: ReportPDF, s: dict) -> None:
         ("Cancelled", s["cancelled_orders"], DANGER_RED),
     ]
 
-    bar_h = 8
-    y     = pdf.get_y()
+    bar_h   = 10
+    label_h = 6
+    row_gap = 5
+    y       = pdf.get_y()
 
     for label, count, color in bar_data:
         proportion = count / total
         filled_w   = CONTENT_W * proportion
 
-        # Grey background track
+        # Grey background track (full width)
         pdf.set_fill_color(*LIGHT_GRAY)
         pdf.rect(MARGIN, y, CONTENT_W, bar_h, style="F")
 
@@ -233,18 +235,26 @@ def _order_status_breakdown(pdf: ReportPDF, s: dict) -> None:
             pdf.set_fill_color(*color)
             pdf.rect(MARGIN, y, filled_w, bar_h, style="F")
 
-        # Label text inside the bar
-        text_color = WHITE if proportion > 0.25 else color
+        # White count inside bar only if bar is wide enough to fit text
+        if proportion > 0.15:
+            pdf.set_font("Helvetica", "B", 8)
+            pdf.set_text_color(*WHITE)
+            pdf.set_xy(MARGIN + 2, y + 2)
+            pdf.cell(filled_w - 4, 6, str(count), align="L")
+
+        # Label + percentage always printed BELOW the bar in the bar color
         pdf.set_font("Helvetica", "B", 8)
-        pdf.set_text_color(*text_color)
-        pdf.set_xy(MARGIN + 2, y + 1)
-        pdf.cell(CONTENT_W - 4, 6,
-                 f"{label}: {count}  ({proportion * 100:.0f}%)",
-                 align="L")
+        pdf.set_text_color(*color)
+        pdf.set_xy(MARGIN, y + bar_h + 1)
+        pdf.cell(
+            CONTENT_W, label_h,
+            f"{label}: {count} orders  ({proportion * 100:.0f}%)",
+            align="L"
+        )
 
-        y += bar_h + 3
+        y += bar_h + label_h + row_gap
 
-    pdf.set_y(y + 4)
+    pdf.set_y(y + 2)
 
 
 # == Public entry point ========================================================

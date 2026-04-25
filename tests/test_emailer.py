@@ -42,6 +42,7 @@ def make_fake_pdf(tmp_path) -> str:
     pdf_path = str(tmp_path / "test_report.pdf")
     with open(pdf_path, "wb") as f:
         f.write(b"%PDF-1.4 fake content for testing")
+        # why 1.4 Real PDF readers need that "header" to know it's a PDF. Our code just needs to know the file exists so it doesn't crash before it even gets to the email part.
     return pdf_path
 
 

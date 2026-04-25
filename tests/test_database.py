@@ -55,7 +55,8 @@ EMPTY_DF = pd.DataFrame(columns=[
 
 class TestFetchDailySummary:
 
-    @patch("app.database.pd.read_sql")
+    @patch("app.database.pd.read_sql") # it is the address where the code will go to mock the data
+    # =>>>>>>>>> pd.read_sql: This is the specific tool inside database.py that we want to replace. 
     @patch("app.database._engine")
     def test_returns_dataframe(self, mock_engine, mock_read_sql):
         """
@@ -69,11 +70,13 @@ class TestFetchDailySummary:
           the code calls pd.read_sql(...) it gets FAKE_DF back
           instead of actually hitting PostgreSQL.
         """
+
         mock_engine.connect.return_value.__enter__ = MagicMock(return_value=MagicMock())
         mock_engine.connect.return_value.__exit__  = MagicMock(return_value=False)
-        mock_read_sql.return_value = FAKE_DF
+        # enter and exit are beacuse of the with block in fetch faily summary in app/database.py
+        mock_read_sql.return_value = FAKE_DF 
 
-        result = fetch_daily_summary()
+        result = fetch_daily_summary() # when this function calls goes it gets the mocked data due to enter and exit system 
 
         assert isinstance(result, pd.DataFrame)
 

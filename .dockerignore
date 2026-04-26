@@ -1,0 +1,34 @@
+# ==============================================================================
+# .dockerignore
+# ==============================================================================
+# Files listed here are EXCLUDED from the build context sent to Docker.
+#
+# WHY THIS MATTERS:
+#   When you run 'docker build', Docker sends your entire project folder
+#   to the Docker daemon as the "build context". Large or sensitive files
+#   slow down builds and could accidentally end up in the image.
+# ==============================================================================
+
+# Secrets - NEVER bake into the image
+.env
+
+# Python cache - not needed in the image
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Test files - not needed in production image
+tests/
+testphase*.py
+conftest.py
+
+# Git history - not needed in the image
+.git/
+.gitignore
+
+# Logs - not needed in the image
+logs/
+
+# VS Code settings
+.vscode/

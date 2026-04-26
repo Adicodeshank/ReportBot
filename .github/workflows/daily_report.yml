@@ -1,0 +1,167 @@
+# ==============================================================================
+# daily_report.yml
+# ==============================================================================
+#
+# WHAT IS THIS FILE?
+#   This is a GitHub Actions workflow file.
+#   GitHub reads this file and automatically runs it on the schedule below.
+#   It lives in .github/workflows/ - GitHub looks in this exact folder.
+#
+# WHAT IS GITHUB ACTIONS?
+#   GitHub Actions is a CI/CD platform built into GitHub.
+#   CI/CD = Continuous Integration / Continuous Deployment.
+#   For us it is simpler: it is a free cloud computer that runs
+#   our Python script on a schedule, even when our laptop is off.
+#
+# HOW IS IT FREE?
+#   GitHub gives every public repo unlimited Actions minutes.
+#   Private repos get 2000 free minutes/month.
+#   Our script runs in ~30 seconds per day = ~15 minutes/month.
+#   We use less than 1% of the free quota.
+#
+# KEY CONCEPTS:
+#   workflow  = this entire file (one automated process)
+#   job       = a group of steps that run on one machine
+#   step      = a single command or action inside a job
+#   runner    = the cloud machine GitHub spins up (ubuntu-latest)
+#   secret    = encrypted variable stored in GitHub, not in code
+# ==============================================================================
+
+
+# == Workflow name =============================================================
+# This name appears in the GitHub Actions tab in your repo.
+name: Daily Business Report
+
+
+# == Trigger ===================================================================
+# 'on' defines WHEN this workflow runs.
+# We have two triggers:
+
+on:
+
+  # TRIGGER 1: Scheduled (the main one)
+  # 'schedule' uses standard cron syntax.
+  # GitHub Actions cron always runs in UTC.
+  # IST = UTC + 5:30, so 8:00 AM IST = 2:30 AM UTC
+  # Cron expression: 30 2 * * *
+  #   30  = minute 30
+  #   2   = hour 2 (2 AM UTC)
+  #   *   = every day of month
+  #   *   = every month
+  #   *   = every day of week
+  schedule:
+    - cron: '30 2 * * *'
+
+  # TRIGGER 2: Manual (for testing)
+  # 'workflow_dispatch' adds a "Run workflow" button in GitHub UI.
+  # This lets you trigger it manually without waiting for 2:30 AM.
+  # Perfect for testing: go to Actions tab, click Run workflow, done.
+  workflow_dispatch:
+
+
+# == Jobs ======================================================================
+# A workflow contains one or more jobs.
+# Jobs run in PARALLEL by default (we only have one so it doesn't matter).
+
+jobs:
+
+  send-report:
+
+    # RUNNER: The type of machine GitHub spins up.
+    # ubuntu-latest = latest Ubuntu Linux VM.
+    # GitHub also supports windows-latest and macos-latest.
+    # We use Ubuntu because:
+    #   1. It is the same OS as our Docker container
+    #   2. It is fastest and cheapest on GitHub's infrastructure
+    #   3. Our code is Linux-compatible (we fixed /tmp path issues earlier)
+    runs-on: ubuntu-latest
+
+    # == Steps =================================================================
+    # Steps run IN ORDER, top to bottom.
+    # If any step fails, all following steps are SKIPPED.
+    # This is the same sequential guarantee as our main.py pipeline.
+
+    steps:
+
+      # STEP 1: Checkout
+      # 'uses' means we are using a pre-built GitHub Action.
+      # actions/checkout@v4 is GitHub's official action that
+      # clones your repository onto the runner machine.
+      # Without this step, the machine has no code to run.
+      # @v4 means version 4 - always pin to a version for stability.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+
+      # STEP 2: Set up Python
+      # actions/setup-python@v5 is GitHub's official Python installer.
+      # It installs exactly Python 3.12 - same version as our Dockerfile.
+      # This guarantees consistent behaviour across local, Docker, and CI.
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+          # Cache pip downloads between runs.
+          # First run: downloads all packages (~30s)
+          # Next runs: restores from cache (~5s)
+          # GitHub caches based on requirements.txt hash.
+          # If requirements.txt changes, cache is invalidated automatically.
+          cache: "pip"
+
+
+      # STEP 3: Install dependencies
+      # 'run' executes a shell command directly on the runner.
+      # pip install -r requirements.txt installs everything in one go.
+      # --no-cache-dir saves disk space on the runner.
+      - name: Install dependencies
+        run: pip install -r requirements.txt --no-cache-dir
+
+
+      # STEP 4: Run the report bot
+      # This is the actual work - runs your main.py pipeline:
+      #   fetch DB -> generate PDF -> send email
+      #
+      # env: injects GitHub Secrets as environment variables.
+      # GitHub Secrets are encrypted values stored in your repo settings.
+      # They are NEVER visible in logs - GitHub automatically masks them.
+      #
+      # HOW SECRETS WORK:
+      #   You store:  DB_PASSWORD = "myP@ssword"  in GitHub repo settings
+      #   Here:       ${{ secrets.DB_PASSWORD }}  reads that stored value
+      #   In code:    os.getenv("DB_PASSWORD")    receives "myP@ssword"
+      #
+      # The ${{ }} syntax is GitHub Actions expression syntax.
+      # secrets.X reads from Settings -> Secrets -> Actions in your repo.
+      - name: Run Report Bot
+        env:
+          DB_HOST:            ${{ secrets.DB_HOST }}
+          DB_PORT:            ${{ secrets.DB_PORT }}
+          DB_NAME:            ${{ secrets.DB_NAME }}
+          DB_USER:            ${{ secrets.DB_USER }}
+          DB_PASSWORD:        ${{ secrets.DB_PASSWORD }}
+          GMAIL_USER:         ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          REPORT_RECIPIENT:   ${{ secrets.REPORT_RECIPIENT }}
+        run: python main.py
+
+
+      # STEP 5: Upload PDF as artifact (BONUS)
+      # Even after the email sends, GitHub keeps the PDF for 7 days.
+      # You can download it from the Actions tab to verify it looks right.
+      # 'actions/upload-artifact@v4' is GitHub's official artifact uploader.
+      #
+      # WHY IS THIS USEFUL?
+      #   If the email fails (wrong recipient, spam filter),
+      #   you can still download the PDF directly from GitHub.
+      #   It is a safety net.
+      - name: Upload PDF report as artifact
+        uses: actions/upload-artifact@v4
+        # 'if: always()' means run this step even if previous steps failed.
+        # Without this, a failed email step would skip the upload
+        # and you would lose the PDF for debugging.
+        if: always()
+        with:
+          name: daily-report
+          path: /tmp/report_*.pdf
+          retention-days: 7

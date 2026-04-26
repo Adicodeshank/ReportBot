@@ -1,0 +1,50 @@
+# ==============================================================================
+# Dockerfile
+# ==============================================================================
+
+# == Base image ================================================================
+FROM python:3.12-slim
+
+# == System dependencies =======================================================
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        cron \
+        gcc \
+        libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# == Working directory ==========================================================
+WORKDIR /app
+
+# == Install Python dependencies ===============================================
+# Copy requirements first to exploit Docker layer caching.
+# If requirements.txt unchanged -> pip install is skipped on next build.
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# == Copy application code =====================================================
+COPY app/        ./app/
+COPY sql/        ./sql/
+COPY main.py     .
+COPY docker/crontab /etc/cron.d/report-bot
+
+# == Configure cron ============================================================
+# chmod 0644 is REQUIRED - cron silently ignores files with wrong permissions.
+RUN chmod 0644 /etc/cron.d/report-bot && \
+    crontab /etc/cron.d/report-bot
+
+# == Start command =============================================================
+# We create cron.log HERE (at runtime) not during build.
+# WHY: The volume mount (logs/ -> /var/log) happens at runtime and
+# overwrites /var/log entirely, deleting any files created during build.
+# Creating it in CMD ensures it exists AFTER the volume is mounted.
+#
+# Step by step:
+#   touch /var/log/cron.log        -> create log file after volume is mounted
+#   printenv >> /etc/environment   -> make env vars available to cron jobs
+#   cron                           -> start cron daemon in background
+#   tail -f /var/log/cron.log      -> keep container alive + stream logs
+CMD touch /var/log/cron.log && \
+    printenv >> /etc/environment && \
+    cron && \
+    tail -f /var/log/cron.log

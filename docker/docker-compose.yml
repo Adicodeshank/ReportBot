@@ -1,0 +1,57 @@
+# ==============================================================================
+# docker-compose.yml
+# ==============================================================================
+# WHAT IS DOCKER COMPOSE?
+#   docker-compose is a tool for defining and running multi-container apps.
+#   For us it is one container, but docker-compose still gives us:
+#     - One command to build + run: 'docker-compose up -d --build'
+#     - Clean env var management via .env file
+#     - Auto-restart on crash or system reboot
+#     - Named volumes for persistent logs
+#
+# COMMANDS:
+#   Start:   docker-compose up -d --build
+#   Stop:    docker-compose down
+#   Logs:    docker-compose logs -f
+#   Rebuild: docker-compose up -d --build --force-recreate
+# ==============================================================================
+
+version: "3.9"
+
+services:
+
+  report-bot:
+
+    # Build from our Dockerfile inside the docker/ folder.
+    # context: .. means the BUILD CONTEXT is the project root (one level up).
+    # This is important - COPY instructions in the Dockerfile are relative
+    # to the build context, not the Dockerfile location.
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+
+    # Container name - used in 'docker logs report-bot' etc.
+    container_name: report-bot
+
+    # Always restart if the container crashes or the system reboots.
+    # This means once you run 'docker-compose up -d' once,
+    # the bot survives server restarts forever.
+    restart: always
+
+    # Load all secrets from the .env file in the project root.
+    # These become environment variables inside the container.
+    # The .env file is NEVER copied into the image - it is injected
+    # at runtime only. This is the secure way to handle secrets.
+    env_file:
+      - ../.env
+
+    # Set timezone so logs show IST times (not UTC)
+    environment:
+      - TZ=Asia/Kolkata
+
+    # Mount the logs folder from your machine into the container.
+    # This means cron logs persist even if the container is deleted.
+    # Left side  (./logs) = folder on YOUR machine
+    # Right side (/var/log) = folder inside the container
+    volumes:
+      - ../logs:/var/log

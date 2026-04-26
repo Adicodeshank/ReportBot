@@ -22,19 +22,21 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.config import config
 
-log = logging.getLogger(__name__) # __name__ here is main but in other file it is app.database it is for debugging
+log = logging.getLogger(__name__)
 
 # ── SQL file path ─────────────────────────────────────────────────────────────
 # Resolved relative to this file so it works from any working directory.
-# __file__ tells Python the full system path to the script you are currently looking at.
-"""
-database.py ka parent app iska parent report bot iske ander sel folder uske ander daily_summary.sql
-"""
 SQL_PATH = Path(__file__).parent.parent / "sql" / "daily_summary.sql"
 
 # ── Engine singleton ──────────────────────────────────────────────────────────
 # Created once at import time. pool_pre_ping=True auto-recovers stale connections.
-_engine = create_engine(config.db_url, pool_pre_ping=True)
+import os
+_ssl_mode = os.getenv('DB_SSLMODE', 'prefer')   # require for Neon, prefer for local
+_engine = create_engine(
+    config.db_url,
+    pool_pre_ping=True,
+    connect_args={'sslmode': _ssl_mode}
+)
 
 
 def _load_query() -> str:

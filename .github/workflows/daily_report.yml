@@ -99,7 +99,7 @@ jobs:
           # Next runs: restores from cache (~5s)
           # GitHub caches based on requirements.txt hash.
           # If requirements.txt changes, cache is invalidated automatically.
-          cache: "pip"
+          # cache: "pip"
 
       # STEP 3: Install dependencies
       # 'run' executes a shell command directly on the runner.

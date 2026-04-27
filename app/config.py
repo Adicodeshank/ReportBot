@@ -1,16 +1,8 @@
 """
 config.py
 ---------
-
-WHY THIS EXISTS:
-  Instead of scattering os.environ calls across every file,
-  we load everything here once. If a variable is missing, the app
-  crashes immediately with a clear error - not silently mid-run.
-
-USAGE:
-  from app.config import config
-  print(config.db_url)
-""" 
+Single source of truth for all configuration.
+"""
 
 import os
 import tempfile
@@ -19,16 +11,10 @@ from datetime import date, timedelta
 from urllib.parse import quote_plus
 from dotenv import load_dotenv
 
-# Load variables from .env file into os.environ.
-# In Docker, env vars are injected directly - load_dotenv() does nothing there.
 load_dotenv()
 
 
 def _require(key: str) -> str:
-    """
-    Fetch a required environment variable.
-    Raises a clear error immediately if it is missing.
-    """
     value = os.getenv(key)
     if not value:
         raise EnvironmentError(
@@ -40,45 +26,39 @@ def _require(key: str) -> str:
 
 def _build_db_url() -> str:
     """
-    Build the PostgreSQL connection URL from individual parts.
+    Build the PostgreSQL connection URL.
 
-    WHY NOT A SINGLE DATABASE_URL STRING?
-      Passwords often contain special characters like @, #, $.
-      These break URL parsing. quote_plus() percent-encodes them
-      safely - e.g. @ becomes %40.
+    PRIORITY:
+      1. If DATABASE_URL env var exists -> use it directly (Neon provides this)
+      2. Otherwise -> build from individual DB_* parts (local development)
 
-    Required .env variables:
-      DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
+    WHY TWO APPROACHES?
+      Neon gives a full connection string with sslmode already included.
+      Local PostgreSQL is easier to configure with separate parts.
+      This function handles both cases automatically.
     """
+    # Option 1: Full URL provided directly (GitHub Actions + Neon)
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        return database_url
+
+    # Option 2: Build from parts (local development)
     host     = _require("DB_HOST")
     port     = _require("DB_PORT")
     name     = _require("DB_NAME")
     user     = _require("DB_USER")
     password = quote_plus(_require("DB_PASSWORD"))
-    return f"postgresql://{user}:{password}@{host}:{port}/{name}"
+    sslmode  = os.getenv("DB_SSLMODE", "prefer")
+    return f"postgresql://{user}:{password}@{host}:{port}/{name}?sslmode={sslmode}"
 
 
 def _pdf_path(report_date: date) -> str:
-    """
-    Build a cross-platform temp path for the PDF.
-
-    WHY tempfile.gettempdir()?
-      /tmp/ works on Linux/Mac but does NOT exist on Windows.
-      tempfile.gettempdir() returns the right folder on every OS:
-        Windows -> C:\\Users\\<user>\\AppData\\Local\\Temp
-        Linux   -> /tmp
-        Mac     -> /var/folders/...
-    """
     tmp = tempfile.gettempdir()
     return os.path.join(tmp, f"report_{report_date}.pdf")
 
 
-@dataclass(frozen=True)#frozen = true means read only
+@dataclass(frozen=True)
 class Config:
-    """
-    Immutable config object.
-    frozen=True means nothing can accidentally overwrite a value at runtime.
-    """
     db_url:         str
     gmail_user:     str
     gmail_password: str
@@ -88,9 +68,7 @@ class Config:
 
 
 def load_config() -> Config:
-    """Build and return the Config object from environment variables."""
     report_date = date.today() - timedelta(days=1)
-
     return Config(
         db_url         = _build_db_url(),
         gmail_user     = _require("GMAIL_USER"),
@@ -101,5 +79,4 @@ def load_config() -> Config:
     )
 
 
-# Module-level singleton - import this everywhere
 config = load_config()

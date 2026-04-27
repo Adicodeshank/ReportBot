@@ -27,18 +27,15 @@
 #   secret    = encrypted variable stored in GitHub, not in code
 # ==============================================================================
 
-
 # == Workflow name =============================================================
 # This name appears in the GitHub Actions tab in your repo.
 name: Daily Business Report
-
 
 # == Trigger ===================================================================
 # 'on' defines WHEN this workflow runs.
 # We have two triggers:
 
 on:
-
   # TRIGGER 1: Scheduled (the main one)
   # 'schedule' uses standard cron syntax.
   # GitHub Actions cron always runs in UTC.
@@ -50,7 +47,7 @@ on:
   #   *   = every month
   #   *   = every day of week
   schedule:
-    - cron: '30 2 * * *'
+    - cron: "30 2 * * *"
 
   # TRIGGER 2: Manual (for testing)
   # 'workflow_dispatch' adds a "Run workflow" button in GitHub UI.
@@ -58,15 +55,12 @@ on:
   # Perfect for testing: go to Actions tab, click Run workflow, done.
   workflow_dispatch:
 
-
 # == Jobs ======================================================================
 # A workflow contains one or more jobs.
 # Jobs run in PARALLEL by default (we only have one so it doesn't matter).
 
 jobs:
-
   send-report:
-
     # RUNNER: The type of machine GitHub spins up.
     # ubuntu-latest = latest Ubuntu Linux VM.
     # GitHub also supports windows-latest and macos-latest.
@@ -82,7 +76,6 @@ jobs:
     # This is the same sequential guarantee as our main.py pipeline.
 
     steps:
-
       # STEP 1: Checkout
       # 'uses' means we are using a pre-built GitHub Action.
       # actions/checkout@v4 is GitHub's official action that
@@ -91,7 +84,6 @@ jobs:
       # @v4 means version 4 - always pin to a version for stability.
       - name: Checkout repository
         uses: actions/checkout@v4
-
 
       # STEP 2: Set up Python
       # actions/setup-python@v5 is GitHub's official Python installer.
@@ -109,14 +101,12 @@ jobs:
           # If requirements.txt changes, cache is invalidated automatically.
           cache: "pip"
 
-
       # STEP 3: Install dependencies
       # 'run' executes a shell command directly on the runner.
       # pip install -r requirements.txt installs everything in one go.
       # --no-cache-dir saves disk space on the runner.
       - name: Install dependencies
         run: pip install -r requirements.txt --no-cache-dir
-
 
       # STEP 4: Run the report bot
       # This is the actual work - runs your main.py pipeline:
@@ -135,17 +125,11 @@ jobs:
       # secrets.X reads from Settings -> Secrets -> Actions in your repo.
       - name: Run Report Bot
         env:
-          DB_HOST:            ${{ secrets.DB_HOST }}
-          DB_PORT:            ${{ secrets.DB_PORT }}
-          DB_NAME:            ${{ secrets.DB_NAME }}
-          DB_USER:            ${{ secrets.DB_USER }}
-          DB_PASSWORD:        ${{ secrets.DB_PASSWORD }}
-          GMAIL_USER:         ${{ secrets.GMAIL_USER }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-          REPORT_RECIPIENT:   ${{ secrets.REPORT_RECIPIENT }}
-          DB_SSLMODE:         ${{ secrets.DB_SSLMODE }}
+          REPORT_RECIPIENT: ${{ secrets.REPORT_RECIPIENT }}
         run: python main.py
-
 
       # STEP 5: Upload PDF as artifact (BONUS)
       # Even after the email sends, GitHub keeps the PDF for 7 days.

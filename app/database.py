@@ -31,6 +31,7 @@ SQL_PATH = Path(__file__).parent.parent / "sql" / "daily_summary.sql"
 # ── Engine singleton ──────────────────────────────────────────────────────────
 # Created once at import time. pool_pre_ping=True auto-recovers stale connections.
 import os
+# secure socket layer
 _ssl_mode = os.getenv('DB_SSLMODE', 'prefer')   # require for Neon, prefer for local
 _engine = create_engine(
     config.db_url,

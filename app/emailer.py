@@ -28,7 +28,7 @@ import os
 import logging
 import smtplib
 from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
+from email.mime.base import MIMEBase #Multipurpose Internet Mail Extension 
 from email.mime.text import MIMEText
 from email import encoders
 from pathlib import Path
@@ -39,8 +39,8 @@ log = logging.getLogger(__name__)
 
 # Gmail SMTP settings - these never change for Gmail
 SMTP_HOST = "smtp.gmail.com"
-SMTP_PORT = 587              # 587 = TLS (always use this, not 465 for Gmail)
-
+SMTP_PORT = 587              # 587 = TLS 
+# Transport layer security 
 
 def _build_subject() -> str:
     """
@@ -48,8 +48,8 @@ def _build_subject() -> str:
     Formatted so it sorts cleanly in an inbox by date.
     Example: "Daily Report | 19 April 2026"
     """
-    return f"Daily Report | {config.report_date.strftime('%d %B %Y')}"
-
+    return f"Daily Report | {config.report_date.strftime('%d %B %Y')}" # d for day of month b for month in english y for year 
+#  %A is sor weekday like monday
 
 def _build_body() -> str:
     """
@@ -95,13 +95,21 @@ def _attach_pdf(msg: MIMEMultipart, pdf_path: str) -> None:
             f"Make sure generate_report() ran successfully before send_report()."
         )
 
+# with blocks do not create their own scope.
     with open(path, "rb") as f:
         part = MIMEBase("application", "octet-stream")
-        part.set_payload(f.read())
+        part.set_payload(f.read())#part becomes the local variable for _attach_pdf function 
 
     # Encode binary content as base64 so it survives email transmission
-    encoders.encode_base64(part)
+    encoders.encode_base64(part)#turns your PDF into a text string so it doesn't get corrupted during the journey.
 
+    #==========================================
+    # ==========================
+    """
+        Content-Disposition is a specific MIME header that tells the receiving email client (like Gmail, Outlook, or Apple Mail) exactly how to present the attached file to the user.
+
+        attachment means => attach this pdf but pdf should not be in body 
+    """
     part.add_header(
         "Content-Disposition",
         f'attachment; filename="report_{config.report_date}.pdf"',

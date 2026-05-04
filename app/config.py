@@ -1,7 +1,6 @@
 """
 config.py
 ---------
-Single source of truth for all configuration.
 """
 
 import os

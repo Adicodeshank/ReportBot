@@ -3,10 +3,6 @@ report.py
 ---------
 Turns the summary dict from database.py into a formatted PDF report.
 
-THIS FILE KNOWS NOTHING ABOUT:
-  - The database (receives a plain dict)
-  - Email (that is emailer.py's job)
-
 USAGE:
   from app.report import generate_report
   path = generate_report(summary)
@@ -257,7 +253,7 @@ def _order_status_breakdown(pdf: ReportPDF, s: dict) -> None:
     pdf.set_y(y + 2)
 
 
-# == Public entry point ========================================================
+# == entry point ========================================================
 
 def generate_report(summary: dict) -> str:
     """

@@ -32,7 +32,7 @@ new_users AS (
         AND signup_date <  :end_date
 ),
 
--- ── CTE 2: Orders linked to yesterday's activity ─────────────────────────────
+-- ── CTE 2: Orders linked to yesterday's activity ───────────────────────────
 -- JOIN orders → users so we can filter by signup_date.
 -- When your orders table later gets its own created_at column,
 -- simply swap the WHERE to: o.created_at >= :start_date AND o.created_at < :end_date

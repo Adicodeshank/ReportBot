@@ -28,7 +28,6 @@
 # ==============================================================================
 
 # == Workflow name =============================================================
-# This name appears in the GitHub Actions tab in your repo.
 name: Daily Business Report
 
 # == Trigger ===================================================================
@@ -40,12 +39,6 @@ on:
   # 'schedule' uses standard cron syntax.
   # GitHub Actions cron always runs in UTC.
   # IST = UTC + 5:30, so 8:00 AM IST = 2:30 AM UTC
-  # Cron expression: 30 2 * * *
-  #   30  = minute 30
-  #   2   = hour 2 (2 AM UTC)
-  #   *   = every day of month
-  #   *   = every month
-  #   *   = every day of week
   schedule:
     - cron: "30 2 * * *"
 
@@ -60,7 +53,8 @@ on:
 # Jobs run in PARALLEL by default (we only have one so it doesn't matter).
 
 jobs:
-  send-report:
+  send-report: 
+    # SEND_REPORT IS THE NAME OF THE JOB
     # RUNNER: The type of machine GitHub spins up.
     # ubuntu-latest = latest Ubuntu Linux VM.
     # GitHub also supports windows-latest and macos-latest.

@@ -11,7 +11,8 @@ RUN apt-get update && \
         cron \
         gcc \
         libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* 
+    # rm -rf /var/lib/apt/lists/* this is for removing  cache
 
 # == Working directory ==========================================================
 WORKDIR /app
@@ -23,6 +24,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # == Copy application code =====================================================
+# copying actual application code into image 
 COPY app/        ./app/
 COPY sql/        ./sql/
 COPY main.py     .
@@ -32,6 +34,10 @@ COPY docker/crontab /etc/cron.d/report-bot
 # chmod 0644 is REQUIRED - cron silently ignores files with wrong permissions.
 RUN chmod 0644 /etc/cron.d/report-bot && \
     crontab /etc/cron.d/report-bot
+# 0    = no special flags
+# 6    = owner: read + write (4+2)
+# 4    = group: read only
+# 4    = others: read only
 
 # == Start command =============================================================
 # We create cron.log HERE (at runtime) not during build.
